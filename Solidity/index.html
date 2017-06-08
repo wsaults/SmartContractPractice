@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+    <title>myDapp</title>
+    <script src="web3.js/dist/web3.js"></script>
+    <script type="text/javascript">
+        if (typeof web3 !== 'undefined') {
+            web3 = new Web3(web3.currentProvider);
+        } else {
+            // set the provider you want from Web3.providers
+            web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+        }
+
+        function getBalance() {
+            document.getElementById("myBalance").innerText =
+                web3.fromWei(web3.eth.getBalance("7c8956169731ad7b855dce8ef5ce9a7bec3da7bc"), "ether");
+        }
+    </script>
+</head>
+    <body>
+        <div>
+            <h1>This is my balance</h1>
+            <button onclick="getBalance()">Update my balance</button>
+            <span id="myBalance"></span> in Ether
+        </div>
+        <div>
+            <h1>Interact with a contract</h1>
+            <button onclick="getCounter()">Update Counter</button>
+            <button onclick="increaseCounter()">Increase Counter</button>
+
+            <span id="myCounter"> Counter
+        </div>
+    </body>
+</html>
