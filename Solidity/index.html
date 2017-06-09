@@ -5,8 +5,7 @@
     <script src="web3.js/dist/web3.js"></script>
     <script type="text/javascript">
 
-        var contract_address = "0xB429635B3ab8e3A1D4D22267537D93f6C6fFbc7d";
-        var contract_abi = [ { "constant": true, "inputs": [], "name": "getCreator", "outputs": [ { "name": "", "type": "address", "value": "0xd95b4df83904a511688c69d549ae64c6120ce3a7" } ], "payable": false, "type": "function" }, { "constant": false, "inputs": [], "name": "kill", "outputs": [], "payable": false, "type": "function" }, { "constant": false, "inputs": [ { "name": "myNewNumber", "type": "uint256" } ], "name": "setMyNumber", "outputs": [], "payable": false, "type": "function" }, { "constant": true, "inputs": [], "name": "getMyNumber", "outputs": [ { "name": "", "type": "uint256", "value": "3" } ], "payable": false, "type": "function" }, { "inputs": [], "payable": false, "type": "constructor" } ];
+        var contract_code = "pragma solidity ^0.4.0; contract MyContract { address creator; uint256 myNumber; function MyContract() { creator = msg.sender; myNumber = 3; } function getCreator() constant returns(address) { return creator; } function getMyNumber() constant returns(uint256) { return myNumber; } function setMyNumber(uint256 myNewNumber) { myNumber = myNewNumber; } function kill() { if(msg.sender == creator) { suicide(creator); } } }"
 
         if (typeof web3 !== 'undefined') {
             web3 = new Web3(web3.currentProvider);
@@ -21,7 +20,26 @@
             document.getElementById("defaultAccount").innerText = web3.eth.defaultAccount;
         }
         
-        var contract_instance = web3.eth.contract(contract_abi).at(contract_address);
+        var contract_instance;
+
+        function deployContract() {
+            var compiled_contarct = web3.eth.compile.solidity(contract_code);
+            var code = compiled_contarct['<stdin>:MyContract'].code;
+            var abi = compiled_contract['<stdin>:MyContract'].info.abiDefinition;
+            web3.personal.unlockAccount(web3.eth.defaultAccount, 'password');
+            web3.eth.contract(abi).new({data:code, from:web3.eth.defaultAccount, gas:3000000}, function(error, result) {
+                if (error) {
+                    console.error(error);
+                } else {
+                    if (result.address) {
+                        contract_instance = result;
+                        console.log(contract_instance);
+                        document.getElementById("updateCounterButton").style.visibility = "visible";
+                        document.getElementById("increaseCounterButton").style.visibility = "visible";
+                    }
+                }
+            });
+        }
 
         function getCounter() {
             document.getElementById("myCounter").innerText = contract_instance.getMyNumber().toNumber();
@@ -30,7 +48,7 @@
         function increaseCounter() {
             var currentNumber = contract_instance.getMyNumber().toNumber();
             currentNumber++;
-            web3.personal.unlockAccount(web3.eth.defaultAccount, '');
+            web3.personal.unlockAccount(web3.eth.defaultAccount, 'password');
             contract_instance.setMyNumber(currentNumber, {from: web3.eth.defaultAccount, gas: 200000}, function(error, result) {
                 if (error) {
                     console.error(error);
@@ -73,6 +91,11 @@
             <br>
             <button onclick="getStatus()">Update Status</button>
         </div>
+
+        <div>
+            <button onclick="deployContract()">Deploy my contract</button>
+        </div>
+
         <div>
             <h1>This is my balance</h1>
             <button onclick="getBalance()">Update my balance</button>
@@ -80,8 +103,8 @@
         </div>
         <div>
             <h1>Interact with a contract</h1>
-            <button onclick="getCounter()">Update Counter</button>
-            <button onclick="increaseCounter()">Increase Counter</button>
+            <button onclick="getCounter()" id="updateCounterButton" style="visibility: hidden">Update Counter</button>
+            <button onclick="increaseCounter()" id="increaseCounterButton" style="visibility: hidden">Increase Counter</button>
 
             <span id="myCounter"></span> Counter
         </div>
