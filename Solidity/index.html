@@ -5,8 +5,17 @@
     <script src="web3.js/dist/web3.js"></script>
     <script type="text/javascript">
 
-        var contract_address = "0xB429635B3ab8e3A1D4D22267537D93f6C6fFbc7d";
-        var contract_abi = [ { "constant": true, "inputs": [], "name": "getCreator", "outputs": [ { "name": "", "type": "address", "value": "0xd95b4df83904a511688c69d549ae64c6120ce3a7" } ], "payable": false, "type": "function" }, { "constant": false, "inputs": [], "name": "kill", "outputs": [], "payable": false, "type": "function" }, { "constant": false, "inputs": [ { "name": "myNewNumber", "type": "uint256" } ], "name": "setMyNumber", "outputs": [], "payable": false, "type": "function" }, { "constant": true, "inputs": [], "name": "getMyNumber", "outputs": [ { "name": "", "type": "uint256", "value": "3" } ], "payable": false, "type": "function" }, { "inputs": [], "payable": false, "type": "constructor" } ];
+        var contract_address = "0xd21fd1Fd147001bF515cC10814acCD4c6BfAD0e5";
+        var contract_abi = [ { "constant": true, "inputs": [], "name": "getCreator", "outputs": [ { "name": "", "type": "address", "value": "0xd95b4df83904a511688c69d549ae64c6120ce3a7" } ], "payable": false, "type": "function" }, { "constant": false, "inputs": [], "name": "kill", "outputs": [], "payable": false, "type": "function" }, { "constant": false, "inputs": [ { "name": "myNewNumber", "type": "uint256" } ], "name": "setMyNumber", "outputs": [], "payable": false, "type": "function" }, { "constant": true, "inputs": [], "name": "getMyNumber", "outputs": [ { "name": "", "type": "uint256", "value": "3" } ], "payable": false, "type": "function" }, { "inputs": [], "payable": false, "type": "constructor" }, { "anonymous": false, "inputs": [ { "indexed": true, "name": "whoIncreased", "type": "address" }, { "indexed": true, "name": "oldNumber", "type": "uint256" }, { "indexed": true, "name": "newNumber", "type": "uint256" } ], "name": "NumberIsIncreased", "type": "event" } ];
+
+        var client = new XMLHttpRequest();
+        client.open('GET', './contract.sol');
+        client.onreadystatechange = function() {
+            if (client.readyState === 4) {
+                contract_code = client.responseText;
+            }
+        };
+        client.send();
 
         if (typeof web3 !== 'undefined') {
             web3 = new Web3(web3.currentProvider);
@@ -19,9 +28,17 @@
         function getStatus() {
             document.getElementById("status").innerText = web3.isConnected() ? "Connected" : "Down";
             document.getElementById("defaultAccount").innerText = web3.eth.defaultAccount;
+            makeButtonsVisible();
         }
         
         var contract_instance = web3.eth.contract(contract_abi).at(contract_address);
+
+        function makeButtonsVisible() {
+            var buttons = document.getElementsByClassName("buttonVisibleWhenInstanceAvailable");
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].style.visibility = 'visible';
+            }
+        }
 
         function getCounter() {
             document.getElementById("myCounter").innerText = contract_instance.getMyNumber().toNumber();
@@ -30,7 +47,7 @@
         function increaseCounter() {
             var currentNumber = contract_instance.getMyNumber().toNumber();
             currentNumber++;
-            web3.personal.unlockAccount(web3.eth.defaultAccount, '');
+            web3.personal.unlockAccount(web3.eth.defaultAccount, 'password');
             contract_instance.setMyNumber(currentNumber, {from: web3.eth.defaultAccount, gas: 200000}, function(error, result) {
                 if (error) {
                     console.error(error);
@@ -62,6 +79,66 @@
             document.getElementById("myBalance").innerText =
                 web3.fromWei(web3.eth.getBalance(web3.eth.defaultAccount), "ether");
         }
+
+        var myEvent;
+        function watchEvents() {
+            myEvent = contract_instance.NumberIsIncreased({}, {fromBlock:'latest', toBlock:'latest'});
+            console.log(myEvent);
+            myEvent.watch(function(error, result) {
+                if (error) {
+                    console.log(error);
+                } else {
+                    console.log(result);
+                    document.getElementById("events").innerHTML = document.getElementById("events").innerHTML + "<br />" + JSON.stringify(result);
+                }
+            });
+        }
+
+        function stopWatchingEvents() {
+            if (myEvent !== undefined) {
+                myEvent.stopWatching();
+            }
+        }
+
+        function getAllEvents() {
+            contract_instance.allEvents({fromBlock: 0, toBlock: 'latest'}, function(error, result) {
+                if (error) {
+                    console.error(error);
+                } else {
+                    console.log(result);
+                }
+            });
+        }
+
+        function getNumberIsIncreasedEvent() {
+            contract_instance.NumberIsIncreased({}, {fromBlock: 0, toBlock: 'latest'}).get(function(error, result) {
+                if (error) {
+                    console.error(error);
+                } else {
+                    console.log(result);
+                }
+            });
+        }
+
+        var filter;
+        function filterEventsWatch() {
+            filter = web3.eth.filter({fromBlock:0, toBlock: 'latest', address:contract_instance.address, 'topics':[web3.sha3('NumberIsIncreased(address,uint256,uint256')]});
+            filter.watch(function(error, result) {
+                console.log({"type":"filter", "obj":result});
+                console.log(web3.toDecimal(result.topics[3]));
+            });    
+        }
+
+        function stopFilterEventsWatch() {
+            filter.stopWatching();
+        }
+
+        function filterEventsGet() {
+            var filter = web3.eth.filter({fromBlock:0, toBlock: 'latest', address: contract_instance.address, 'topics':[web3.sha3('NumberIsIncreased(address,uint256,uint256')]});
+            filter.get(function(error, result) {
+                console.log({"type":"filter", "obj":"result"});
+            });
+        }
     </script>
 </head>
     <body>
@@ -82,6 +159,12 @@
             <h1>Interact with a contract</h1>
             <button onclick="getCounter()">Update Counter</button>
             <button onclick="increaseCounter()">Increase Counter</button>
+
+            <button onclick="getAllEvents()" class="buttonVisibleWhenInstanceAvailable">Get All Events</button>
+            <button onclick="getNumberIsIncreasedEvent()" class="buttonVisibleWhenInstanceAvailable">Get Number is Increased Event</button>
+            <button onclick="filterEventsWatch()" class="buttonVisibleWhenInstanceAvailable">Filter Events Watch</button>
+            <button onclick="stopFilterEventsWatch()" class="buttonVisibleWhenInstanceAvailable">Stop Filter Events Watch</button>
+            <button onclick="filterEventsGet()" class="buttonVisibleWhenInstanceAvailable">Filter Events Get</button>
 
             <span id="myCounter"></span> Counter
         </div>

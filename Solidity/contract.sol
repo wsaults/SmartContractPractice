@@ -4,6 +4,8 @@ contract MyContract {
     address creator;
     uint256 myNumber;
 
+    event NumberIsIncreased(address indexed whoIncreased, uint256 indexed oldNumber, uint256 indexed newNumber);
+
     function MyContract() {
         creator = msg.sender;
         myNumber = 3;
@@ -18,6 +20,7 @@ contract MyContract {
     }
 
     function setMyNumber(uint256 myNewNumber) {
+        NumberIsIncreased(msg.sender, myNumber, myNewNumber);
         myNumber = myNewNumber;
     }
 
