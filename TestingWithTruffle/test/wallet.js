@@ -37,4 +37,14 @@ contract("MyWallet", function(accounts) {
             assert.equal(web3.eth.getBalance(walletInstance.address).toNumber(), web3.toWei(5, 'ether'), 'Balance is now 5 ether less than before');
         });
     });
+
+    it('should be possible to confirm a proposal', function() {
+        var walletInstance;
+        return wallet.deployed().then(function(instance) {
+            walletInstance = instance;
+            return walletInstance.confirmProposal(m_proposals[0]), 'Confirm proposal', {from: m_proposals[0]});
+        }).then(function() {
+            
+        });
+    });
 });
