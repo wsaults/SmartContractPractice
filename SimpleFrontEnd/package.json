@@ -32,7 +32,7 @@
     "postcss-loader": "^2.0.5",
     "sass-loader": "^6.0.5",
     "style-loader": "^0.13.2",
-    "truffle-contract": "^1.1.11",
+    "truffle-contract": "^2.0.0",
     "url-loader": "^0.5.8",
     "web3": "^0.18.4",
     "webpack": "^2.6.1",
