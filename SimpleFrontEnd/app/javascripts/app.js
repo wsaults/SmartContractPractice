@@ -44,7 +44,7 @@ window.App = {
       document.getElementById("addresses").innerHTML = accounts.join("<br />");
 
       App.basicInfoUpdate();
-
+      App.listenToEvents();
     });
   },
 
@@ -55,6 +55,21 @@ window.App = {
       document.getElementById("walletAddress").innerHTML = instance.address;
       document.getElementById("walletEther").innerHTML = web3.fromWei(web3.eth.getBalance(instance.address).toNumber(), "ether");
     });
+  },
+
+  listenToEvents: function() {
+    MyWallet.deployed().then(function(instance) {
+      instance.receivedFunds({}, {fromBlock:0, toBlock:'latest'}).watch(function(error, event) {
+        document.getElementById("fundEvents").innerHTML += JSON.stringify(event);
+      });
+      instance.proposalReceived({}, {fromBlock:0, toBlock:'latest'}).watch(function(error, event) {
+        document.getElementById("proposalEvents").innerHTML += JSON.stringify(event);
+      });
+    });
+  },
+
+  confirmTransaction: function() {
+    // TODO
   },
 
   submitEtherToWallet: function() {
@@ -71,7 +86,7 @@ window.App = {
     var _reason = document.getElementById("reason");
 
     MyWallet.deployed().then(function(instance) {
-      return instance.spendMoneyOn(_to, web3.toWei(_amount, 'finney'), _reason, {from:accounts[0]});
+      return instance.spendMoneyOn(_to, web3.toWei(_amount, 'finney'), _reason, {from:accounts[1], gas:500000});
     }).then(function(result) {
       console.log(result);
       App.basicInfoUpdate();
